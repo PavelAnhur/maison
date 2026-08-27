@@ -5,7 +5,7 @@
    ============================================================ */
 
 :root {
-  --ink:        #100f0d;   /* near-black canvas */
+  --ink:        #000000;   /* near-black canvas */
   --ink-2:      #17150f;   /* raised surface */
   --ink-3:      #211e17;   /* card / input */
   --line:       #322d22;   /* hairline */
@@ -14,7 +14,7 @@
   --gold-soft:  #a98f55;
   --gold-glow:  rgba(200,169,106,0.16);
   --cream:      #ede7da;   /* primary text */
-  --cream-dim:  #b3ac9c;   /* secondary text */
+  --cream-dim:  #b5b5b5;   /* secondary text */
   --muted:      #7d7768;   /* tertiary */
   --danger:     #d98b6a;
   --success:    #8fb08a;
