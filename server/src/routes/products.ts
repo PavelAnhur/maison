@@ -1,10 +1,9 @@
-import { Router } from 'express';
 import type { Request, Response } from 'express';
-import { db } from '../db.js';
-import type { DbProduct, DbCertificate } from '../db.js';
-import { serializeProduct, serializeCertificate } from '../pricing.js';
+import { Router } from 'express';
 import { fail, requireRole } from '../auth.js';
-import { placeholderImage, certificateSerial, materialForCategory, CERTIFICATE_ISSUER, CERTIFICATE_ISSUED_AT } from '../db.js';
+import type { DbCertificate, DbProduct } from '../db.js';
+import { CERTIFICATE_ISSUED_AT, CERTIFICATE_ISSUER, certificateSerial, db, materialForCategory, placeholderImage } from '../db.js';
+import { serializeCertificate, serializeProduct } from '../pricing.js';
 
 const router = Router();
 
@@ -12,6 +11,47 @@ const router = Router();
 // GET /api/v1/products?q=&category=&sort=&minPrice=&maxPrice=
 router.get('/', (req, res) => {
   const { q, category, sort, minPrice, maxPrice } = req.query;
+  const validSortOptions = ['price_asc', 'price_desc', 'name', 'created_at', '-created_at', ''];
+  // --- Sort Validation ---
+  if (sort && !validSortOptions.includes(sort as string)) {
+    res.setHeader('X-Validation-Error', 'true');
+    return res.status(400).json({
+      error: 'INVALID_SORT_OPTION',
+      message: `Invalid sort option: "${sort}". Valid options are: price_asc, price_desc, name, created_at`
+    });
+  }
+  // --- Price Validation ---
+  // Validate minPrice is a valid number
+  if (minPrice !== undefined && minPrice !== '') {
+    const minPriceNum = Number(minPrice);
+    if (isNaN(minPriceNum) || minPriceNum < 0) {
+      return res.status(400).json({
+        error: 'INVALID_MIN_PRICE',
+        message: `minPrice must be a non-negative number. Received: "${minPrice}"`
+      });
+    }
+  }
+  // Validate maxPrice is a valid number
+  if (maxPrice !== undefined && maxPrice !== '') {
+    const maxPriceNum = Number(maxPrice);
+    if (isNaN(maxPriceNum) || maxPriceNum < 0) {
+      return res.status(400).json({
+        error: 'INVALID_MAX_PRICE',
+        message: `maxPrice must be a non-negative number. Received: "${maxPrice}"`
+      });
+    }
+  }
+  // Validate minPrice <= maxPrice (if both are provided)
+  if (minPrice !== undefined && minPrice !== '' && maxPrice !== undefined && maxPrice !== '') {
+    const minPriceNum = Number(minPrice);
+    const maxPriceNum = Number(maxPrice);
+    if (minPriceNum > maxPriceNum) {
+      return res.status(400).json({
+        error: 'INVALID_PRICE_RANGE',
+        message: `minPrice (${minPriceNum}) cannot be greater than maxPrice (${maxPriceNum})`
+      });
+    }
+  }
   let sql = 'SELECT * FROM products WHERE published = 1';
   const params: (string | number)[] = [];
   if (q) { sql += ' AND (name LIKE ? OR description LIKE ?)'; params.push(`%${q}%`, `%${q}%`); }

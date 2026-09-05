@@ -33,5 +33,19 @@
     "tsx": "^4.22.3",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.59.4"
-  }
+  },
+  "main": "eslint.config.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PavelAnhur/maison.git"
+  },
+  "keywords": [],
+  "bugs": {
+    "url": "https://github.com/PavelAnhur/maison/issues"
+  },
+  "homepage": "https://github.com/PavelAnhur/maison#readme"
 }
