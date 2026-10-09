@@ -110,7 +110,15 @@ function getOwnedProduct(req, res) {
 }
 // List the seller's own products
 router.get('/seller/mine', requireRole('seller'), (req, res) => {
-    const rows = db.prepare('SELECT * FROM products WHERE seller_id = ? ORDER BY created_at DESC, id DESC').all(req.user.sub);
+    const { category } = req.query;
+    let sql = 'SELECT * FROM products WHERE seller_id = ?';
+    const params = [req.user.sub];
+    if (category) {
+        sql += ' AND category = ?';
+        params.push(category);
+    }
+    sql += ' ORDER BY created_at DESC, id DESC';
+    const rows = db.prepare(sql).all(...params);
     res.json({ products: rows.map(serializeProduct) });
 });
 // Create a listing
