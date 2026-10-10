@@ -218,18 +218,18 @@ test.describe('API · certificate', () => {
     expect((await res.json()).error.code).toBe('CERTIFICATE_NOT_FOUND');
   });
 
-  test('POST issues a certificate for the owning seller (201) and is idempotent', async ({ request }) => {
-    const auth = await login(request, 'seller@maison.test'); // owns product 1
-    const first = await request.post(`${API}/products/1/certificate`, { headers: auth });
+  test('POST issues a certificate for the owning seller (201) and rejects duplicates (409)', async ({ request }) => {
+    const auth = await login(request, 'seller2@maison.test'); // owns product 12, no seed certificate
+    const first = await request.post(`${API}/products/12/certificate`, { headers: auth });
     expect(first.status()).toBe(201);
     const a = (await first.json()).certificate;
-    expect(a.serialNo).toBe('MAISON-AC-0001');
+    expect(a.productId).toBe(12);
 
-    const second = await request.post(`${API}/products/1/certificate`, { headers: auth });
-    expect(second.status()).toBe(201);
-    const b = (await second.json()).certificate;
-    expect(b.serialNo).toBe(a.serialNo);
-    expect(b.issuedAt).toBe(a.issuedAt); // deterministic, not now()
+    const second = await request.post(`${API}/products/12/certificate`, { headers: auth });
+    expect(second.status()).toBe(409);
+    const body = (await second.json()) as { error: { code: string; message: string } };
+    expect(body.error.code).toBe('CONFLICT');
+    expect(body.error.message).toContain('already has a certificate');
   });
 
   test('POST returns 401 when unauthenticated', async ({ request }) => {

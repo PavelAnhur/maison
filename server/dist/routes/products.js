@@ -228,7 +228,7 @@ router.delete('/:id/discount', requireRole('seller'), (req, res) => {
     const updated = db.prepare('SELECT * FROM products WHERE id = ?').get(row.id);
     res.json({ product: serializeProduct(updated) });
 });
-// Protected: (re)issue a certificate. Seller-only, owner-only, idempotent.
+// Protected: issue a certificate. Seller-only, owner-only, 409 on duplicate.
 router.post('/:id/certificate', requireRole('seller'), (req, res) => {
     const product = db.prepare('SELECT * FROM products WHERE id = ?')
         .get(Number(req.params.id));
@@ -237,9 +237,13 @@ router.post('/:id/certificate', requireRole('seller'), (req, res) => {
     if (product.seller_id !== req.user.sub) {
         return fail(res, 403, 'FORBIDDEN_NOT_OWNER', 'You can only issue certificates for products you own.');
     }
+    const existing = db.prepare('SELECT * FROM certificates WHERE product_id = ?')
+        .get(product.id);
+    if (existing) {
+        return fail(res, 409, 'CONFLICT', 'This product already has a certificate of authenticity.');
+    }
     const serial = certificateSerial(product.id);
     const material = materialForCategory(product.category);
-    db.prepare('DELETE FROM certificates WHERE product_id = ?').run(product.id);
     db.prepare('INSERT INTO certificates (product_id, serial_no, issuer, material, issued_at) VALUES (?, ?, ?, ?, ?)')
         .run(product.id, serial, CERTIFICATE_ISSUER, material, CERTIFICATE_ISSUED_AT);
     const row = db.prepare('SELECT * FROM certificates WHERE product_id = ?')
